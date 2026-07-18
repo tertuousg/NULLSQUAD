@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760" role="img" aria-labelledby="title">
+  <title id="title">Modern office equipment display</title>
+  <rect width="1440" height="760" fill="#dfe8ec"/>
+  <rect x="0" y="520" width="1440" height="240" fill="#c9d8dd"/>
+  <rect x="770" y="180" width="420" height="250" rx="12" fill="#ffffff"/>
+  <rect x="805" y="220" width="350" height="40" rx="8" fill="#245c7a"/>
+  <rect x="805" y="285" width="140" height="110" rx="8" fill="#d18a34"/>
+  <rect x="975" y="285" width="180" height="110" rx="8" fill="#8aa7b6"/>
+  <rect x="860" y="455" width="280" height="32" rx="8" fill="#14394d"/>
+  <rect x="900" y="487" width="28" height="120" fill="#14394d"/>
+  <rect x="1075" y="487" width="28" height="120" fill="#14394d"/>
+  <circle cx="520" cy="430" r="88" fill="#245c7a"/>
+  <rect x="442" y="478" width="156" height="34" rx="16" fill="#14394d"/>
+  <rect x="480" y="512" width="34" height="115" fill="#14394d"/>
+  <rect x="526" y="512" width="34" height="115" fill="#14394d"/>
+  <rect x="380" y="610" width="280" height="28" rx="14" fill="#d18a34"/>
+  <rect x="1220" y="130" width="90" height="500" rx="12" fill="#ffffff"/>
+  <rect x="1240" y="170" width="50" height="80" rx="6" fill="#245c7a"/>
+  <rect x="1240" y="275" width="50" height="80" rx="6" fill="#d18a34"/>
+  <rect x="1240" y="380" width="50" height="80" rx="6" fill="#8aa7b6"/>
+</svg>
+

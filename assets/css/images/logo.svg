@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">PrimeDesk Office Solutions logo</title>
+  <desc id="desc">A desk and chair mark inside a rounded square.</desc>
+  <rect width="240" height="240" rx="42" fill="#245c7a"/>
+  <path d="M55 78h130a14 14 0 0 1 14 14v22H41V92a14 14 0 0 1 14-14Z" fill="#f3f7f8"/>
+  <path d="M61 120h118v20H61z" fill="#d18a34"/>
+  <path d="M75 144h22v44H75zM143 144h22v44h-22z" fill="#f3f7f8"/>
+  <path d="M96 55h48a16 16 0 0 1 16 16v7H80v-7a16 16 0 0 1 16-16Z" fill="#f3f7f8" opacity=".9"/>
+  <text x="120" y="218" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#ffffff">PD</text>
+</svg>
+

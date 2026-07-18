@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-labelledby="title">
+  <title id="title">Office product placeholder</title>
+  <rect width="800" height="600" fill="#eef3f5"/>
+  <rect x="190" y="170" width="420" height="210" rx="18" fill="#245c7a"/>
+  <rect x="230" y="215" width="340" height="48" rx="8" fill="#ffffff"/>
+  <rect x="255" y="296" width="115" height="120" rx="8" fill="#d18a34"/>
+  <rect x="430" y="296" width="115" height="120" rx="8" fill="#d18a34"/>
+  <text x="400" y="488" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#245c7a">PrimeDesk</text>
+</svg>
+
