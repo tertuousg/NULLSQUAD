@@ -1,0 +1,201 @@
+-- PrimeDesk Office Solutions E-Commerce Database
+-- Import this file in phpMyAdmin or the MySQL command line before running the website.
+
+DROP DATABASE IF EXISTS primedesk_ecommerce;
+CREATE DATABASE primedesk_ecommerce CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE primedesk_ecommerce;
+
+CREATE TABLE users (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(160) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'inactive',
+    email_verified_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE customers (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL UNIQUE,
+    address TEXT NOT NULL,
+    contact_number VARCHAR(30) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_customers_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE categories (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT NULL,
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE products (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category_id INT UNSIGNED NOT NULL,
+    name VARCHAR(160) NOT NULL,
+    description TEXT NOT NULL,
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    image VARCHAR(255) NULL,
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_products_category (category_id),
+    INDEX idx_products_name (name),
+    CONSTRAINT fk_products_category
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE inventory (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id INT UNSIGNED NOT NULL UNIQUE,
+    quantity INT UNSIGNED NOT NULL DEFAULT 0,
+    low_stock_threshold INT UNSIGNED NOT NULL DEFAULT 5,
+    updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_inventory_product
+        FOREIGN KEY (product_id) REFERENCES products(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE cart (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    quantity INT UNSIGNED NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_cart_customer_product (customer_id, product_id),
+    CONSTRAINT fk_cart_customer
+        FOREIGN KEY (customer_id) REFERENCES customers(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_cart_product
+        FOREIGN KEY (product_id) REFERENCES products(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE orders (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT UNSIGNED NOT NULL,
+    reference_number VARCHAR(40) NOT NULL UNIQUE,
+    shipping_address TEXT NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    payment_method ENUM('Cash on Delivery', 'Bank Transfer', 'GCash') NOT NULL,
+    order_status ENUM('pending', 'processing', 'approved', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
+    payment_status ENUM('unpaid', 'paid') NOT NULL DEFAULT 'unpaid',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_orders_customer
+        FOREIGN KEY (customer_id) REFERENCES customers(id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE order_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    product_name VARCHAR(160) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    CONSTRAINT fk_order_items_order
+        FOREIGN KEY (order_id) REFERENCES orders(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_order_items_product
+        FOREIGN KEY (product_id) REFERENCES products(id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE payments (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    method ENUM('Cash on Delivery', 'Bank Transfer', 'GCash') NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    status ENUM('pending', 'paid', 'failed') NOT NULL DEFAULT 'pending',
+    proof_reference VARCHAR(120) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payments_order
+        FOREIGN KEY (order_id) REFERENCES orders(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE audit_logs (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NULL,
+    username VARCHAR(160) NOT NULL,
+    action VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_audit_created_at (created_at),
+    CONSTRAINT fk_audit_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE email_verification (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    token VARCHAR(120) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_email_verification_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE password_reset (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    token VARCHAR(120) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_password_reset_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Seed accounts use the password: password
+-- Replace these sample passwords after installation.
+INSERT INTO users (id, full_name, email, password_hash, role, status, email_verified_at) VALUES
+(1, 'System Administrator', 'admin@primedesk.test', '$2y$10$RqW/.NT15PUm.K.YekhUdOrOACWffZu8MhdQ/Rb/.bfrvkvT2NnJm', 'admin', 'active', CURRENT_TIMESTAMP),
+(2, 'Patrick Jhon S. Roxas', 'customer@primedesk.test', '$2y$10$RqW/.NT15PUm.K.YekhUdOrOACWffZu8MhdQ/Rb/.bfrvkvT2NnJm', 'customer', 'active', CURRENT_TIMESTAMP);
+
+INSERT INTO customers (id, user_id, address, contact_number) VALUES
+(1, 2, 'Blk 8 Lot 15, Sample Street, Manila, Philippines', '0917-555-0188');
+
+INSERT INTO categories (id, name, description, status) VALUES
+(1, 'Office Chairs', 'Ergonomic and executive chairs for daily office use.', 'active'),
+(2, 'Office Tables', 'Conference, meeting, and utility office tables.', 'active'),
+(3, 'Filing Cabinets', 'Secure filing and document storage cabinets.', 'active'),
+(4, 'Office Desks', 'Work desks for individual and shared workspaces.', 'active'),
+(5, 'Shelves', 'Open shelving units for storage and display.', 'active'),
+(6, 'Accessories', 'Desk organizers, cable trays, and office accessories.', 'active');
+
+INSERT INTO products (id, category_id, name, description, price, image, status) VALUES
+(1, 1, 'ErgoPro Mesh Chair', 'Breathable mesh office chair with adjustable height and lumbar support.', 5499.00, 'assets/images/products/ergonomic-chair.svg', 'active'),
+(2, 1, 'Executive Cushion Chair', 'Premium cushioned chair for managers and meeting rooms.', 7899.00, 'assets/images/products/ergonomic-chair.svg', 'active'),
+(3, 4, 'Prime Executive Desk', 'Wide office desk with modesty panel and cable management opening.', 12499.00, 'assets/images/products/executive-desk.svg', 'active'),
+(4, 2, 'Conference Table 6-Seater', 'Durable meeting table with laminated top and metal legs.', 16999.00, 'assets/images/products/executive-desk.svg', 'active'),
+(5, 3, 'Four-Drawer Filing Cabinet', 'Lockable steel cabinet for office documents and records.', 6999.00, 'assets/images/products/filing-cabinet.svg', 'active'),
+(6, 5, 'Modular Storage Shelf', 'Adjustable office shelf for supplies, binders, and display items.', 3899.00, 'assets/images/products/storage-shelf.svg', 'active'),
+(7, 6, 'Desk Organizer Set', 'Organizer tray, pen holder, and document sorter set.', 899.00, 'assets/images/products/office-accessories.svg', 'active'),
+(8, 6, 'Cable Management Kit', 'Cable tray, ties, and clips for cleaner workstation setup.', 699.00, 'assets/images/products/office-accessories.svg', 'active');
+
+INSERT INTO inventory (product_id, quantity, low_stock_threshold) VALUES
+(1, 18, 5),
+(2, 8, 3),
+(3, 10, 3),
+(4, 4, 2),
+(5, 12, 4),
+(6, 2, 5),
+(7, 40, 10),
+(8, 35, 10);
+
+INSERT INTO audit_logs (user_id, username, action, ip_address, created_at) VALUES
+(1, 'admin@primedesk.test', 'Initial database seed created', 'local', CURRENT_TIMESTAMP);
