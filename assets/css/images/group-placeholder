@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620" role="img" aria-labelledby="title">
+  <title id="title">Group picture placeholder</title>
+  <rect width="900" height="620" fill="#eef3f5"/>
+  <rect x="80" y="70" width="740" height="480" rx="20" fill="#ffffff" stroke="#d7e1e5" stroke-width="8"/>
+  <circle cx="280" cy="255" r="66" fill="#245c7a"/>
+  <circle cx="450" cy="235" r="76" fill="#d18a34"/>
+  <circle cx="620" cy="255" r="66" fill="#245c7a"/>
+  <path d="M170 455c26-83 85-126 176-126s150 43 176 126" fill="#8aa7b6"/>
+  <path d="M300 455c22-96 72-144 150-144s128 48 150 144" fill="#14394d"/>
+  <path d="M508 455c26-83 85-126 176-126s150 43 176 126" fill="#8aa7b6"/>
+  <text x="450" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#245c7a">Insert group picture here</text>
+</svg>
+
