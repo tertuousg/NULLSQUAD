@@ -1,0 +1,129 @@
+<?php
+require_once __DIR__ . '/../includes/init.php';
+
+require_admin();
+
+$pageTitle = 'Category Management';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf()) {
+        set_flash('danger', 'Invalid form token. Please try again.');
+        redirect('admin/categories.php');
+    }
+
+    $action = (string) ($_POST['action'] ?? '');
+    $id = (int) ($_POST['id'] ?? 0);
+
+    try {
+        if ($action === 'create') {
+            $stmt = db()->prepare('INSERT INTO categories (name, description, status, created_at) VALUES (:name, :description, :status, CURRENT_TIMESTAMP)');
+            $stmt->execute([
+                'name' => trim((string) ($_POST['name'] ?? '')),
+                'description' => trim((string) ($_POST['description'] ?? '')),
+                'status' => (string) ($_POST['status'] ?? 'active'),
+            ]);
+            log_activity((int) current_user()['id'], current_user()['email'], 'Add category');
+            set_flash('success', 'Category added.');
+        } elseif ($action === 'update') {
+            $stmt = db()->prepare('UPDATE categories SET name = :name, description = :description, status = :status WHERE id = :id');
+            $stmt->execute([
+                'name' => trim((string) ($_POST['name'] ?? '')),
+                'description' => trim((string) ($_POST['description'] ?? '')),
+                'status' => (string) ($_POST['status'] ?? 'active'),
+                'id' => $id,
+            ]);
+            log_activity((int) current_user()['id'], current_user()['email'], 'Update category ID ' . $id);
+            set_flash('success', 'Category updated.');
+        } elseif ($action === 'delete') {
+            $stmt = db()->prepare('DELETE FROM categories WHERE id = :id');
+            $stmt->execute(['id' => $id]);
+            log_activity((int) current_user()['id'], current_user()['email'], 'Delete category ID ' . $id);
+            set_flash('success', 'Category deleted.');
+        }
+    } catch (Throwable $exception) {
+        set_flash('danger', 'Category action failed. It may still be assigned to products.');
+    }
+
+    redirect('admin/categories.php');
+}
+
+$editCategory = null;
+if (isset($_GET['edit'])) {
+    $stmt = db()->prepare('SELECT * FROM categories WHERE id = :id LIMIT 1');
+    $stmt->execute(['id' => (int) $_GET['edit']]);
+    $editCategory = $stmt->fetch();
+}
+
+$categories = db()->query(
+    'SELECT c.*, COUNT(p.id) AS product_count
+     FROM categories c
+     LEFT JOIN products p ON p.category_id = c.id
+     GROUP BY c.id
+     ORDER BY c.name'
+)->fetchAll();
+
+include __DIR__ . '/../templates/admin_header.php';
+?>
+<div class="row g-4">
+    <div class="col-xl-4">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><?= $editCategory ? 'Edit Category' : 'Add Category' ?></h2>
+                <form method="post">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="<?= $editCategory ? 'update' : 'create' ?>">
+                    <?php if ($editCategory): ?><input type="hidden" name="id" value="<?= (int) $editCategory['id'] ?>"><?php endif; ?>
+                    <div class="mb-3">
+                        <label class="form-label" for="name">Category Name</label>
+                        <input class="form-control" id="name" name="name" value="<?= e($editCategory['name'] ?? '') ?>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"><?= e($editCategory['description'] ?? '') ?></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="status">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="active" <?= selected($editCategory['status'] ?? 'active', 'active') ?>>Active</option>
+                            <option value="inactive" <?= selected($editCategory['status'] ?? '', 'inactive') ?>>Inactive</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" type="submit"><?= $editCategory ? 'Save Changes' : 'Add Category' ?></button>
+                    <?php if ($editCategory): ?><a class="btn btn-outline-secondary" href="<?= url('admin/categories.php') ?>">Cancel</a><?php endif; ?>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Categories</h2>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead><tr><th>Name</th><th>Products</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                        <?php foreach ($categories as $category): ?>
+                            <tr>
+                                <td><div class="fw-semibold"><?= e($category['name']) ?></div><div class="small text-muted"><?= e(excerpt((string) $category['description'], 80)) ?></div></td>
+                                <td><?= (int) $category['product_count'] ?></td>
+                                <td><span class="badge text-bg-<?= badge_class($category['status']) ?>"><?= e(ucfirst($category['status'])) ?></span></td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-primary" href="<?= url('admin/categories.php?edit=' . (int) $category['id']) ?>">Edit</a>
+                                    <form method="post" class="d-inline">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?= (int) $category['id'] ?>">
+                                        <button class="btn btn-sm btn-outline-danger" type="submit" data-confirm="Delete this category?">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php include __DIR__ . '/../templates/admin_footer.php'; ?>
+
