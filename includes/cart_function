@@ -1,0 +1,143 @@
+<?php
+declare(strict_types=1);
+
+function current_customer_id(): int
+{
+    $user = current_user();
+
+    if (!$user) {
+        return 0;
+    }
+
+    $stmt = db()->prepare('SELECT id FROM customers WHERE user_id = :user_id LIMIT 1');
+    $stmt->execute(['user_id' => $user['id']]);
+    $customer = $stmt->fetch();
+
+    return $customer ? (int) $customer['id'] : 0;
+}
+
+function cart_item_count(int $customerId): int
+{
+    $stmt = db()->prepare('SELECT COALESCE(SUM(quantity), 0) AS total FROM cart WHERE customer_id = :customer_id');
+    $stmt->execute(['customer_id' => $customerId]);
+
+    return (int) $stmt->fetchColumn();
+}
+
+function get_cart_items(int $customerId): array
+{
+    $stmt = db()->prepare(
+        'SELECT c.id AS cart_id, c.quantity, p.id AS product_id, p.name, p.price, p.image, i.quantity AS stock
+         FROM cart c
+         JOIN products p ON p.id = c.product_id
+         JOIN inventory i ON i.product_id = p.id
+         WHERE c.customer_id = :customer_id
+         ORDER BY c.created_at DESC'
+    );
+    $stmt->execute(['customer_id' => $customerId]);
+
+    return $stmt->fetchAll();
+}
+
+function add_to_cart(int $customerId, int $productId, int $quantity): void
+{
+    $quantity = max(1, $quantity);
+
+    $stockStmt = db()->prepare('SELECT quantity FROM inventory WHERE product_id = :product_id');
+    $stockStmt->execute(['product_id' => $productId]);
+    $stock = (int) $stockStmt->fetchColumn();
+
+    if ($stock < $quantity) {
+        throw new RuntimeException('Requested quantity is greater than available stock.');
+    }
+
+    $existing = db()->prepare(
+        'SELECT id, quantity FROM cart WHERE customer_id = :customer_id AND product_id = :product_id LIMIT 1'
+    );
+    $existing->execute([
+        'customer_id' => $customerId,
+        'product_id' => $productId,
+    ]);
+    $cartRow = $existing->fetch();
+
+    if ($cartRow) {
+        $newQuantity = min($stock, (int) $cartRow['quantity'] + $quantity);
+        $update = db()->prepare('UPDATE cart SET quantity = :quantity WHERE id = :id AND customer_id = :customer_id');
+        $update->execute([
+            'quantity' => $newQuantity,
+            'id' => (int) $cartRow['id'],
+            'customer_id' => $customerId,
+        ]);
+        return;
+    }
+
+    $stmt = db()->prepare(
+        'INSERT INTO cart (customer_id, product_id, quantity, created_at)
+         VALUES (:customer_id, :product_id, :quantity, CURRENT_TIMESTAMP)'
+    );
+    $stmt->execute([
+        'customer_id' => $customerId,
+        'product_id' => $productId,
+        'quantity' => $quantity,
+    ]);
+}
+
+function update_cart_quantity(int $cartId, int $customerId, int $quantity): void
+{
+    if ($quantity <= 0) {
+        remove_cart_item($cartId, $customerId);
+        return;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT i.quantity AS stock
+         FROM cart c
+         JOIN inventory i ON i.product_id = c.product_id
+         WHERE c.id = :cart_id AND c.customer_id = :customer_id
+         LIMIT 1'
+    );
+    $stmt->execute([
+        'cart_id' => $cartId,
+        'customer_id' => $customerId,
+    ]);
+    $stock = (int) ($stmt->fetchColumn() ?: 0);
+
+    if ($stock <= 0) {
+        remove_cart_item($cartId, $customerId);
+        return;
+    }
+
+    $stmt = db()->prepare('UPDATE cart SET quantity = :quantity WHERE id = :cart_id AND customer_id = :customer_id');
+    $stmt->execute([
+        'quantity' => min($quantity, $stock),
+        'cart_id' => $cartId,
+        'customer_id' => $customerId,
+    ]);
+}
+
+function remove_cart_item(int $cartId, int $customerId): void
+{
+    $stmt = db()->prepare('DELETE FROM cart WHERE id = :cart_id AND customer_id = :customer_id');
+    $stmt->execute([
+        'cart_id' => $cartId,
+        'customer_id' => $customerId,
+    ]);
+}
+
+function clear_cart(int $customerId): void
+{
+    $stmt = db()->prepare('DELETE FROM cart WHERE customer_id = :customer_id');
+    $stmt->execute(['customer_id' => $customerId]);
+}
+
+function cart_total(array $items): float
+{
+    $total = 0.0;
+
+    foreach ($items as $item) {
+        $total += (float) $item['price'] * (int) $item['quantity'];
+    }
+
+    return $total;
+}
+
